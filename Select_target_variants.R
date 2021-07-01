@@ -22,19 +22,22 @@ main <- function(AssocFile=file1){
   SNPlist=as.data.frame(Assoc$SNP)
   colnames(SNPlist)=c("SNP")
   #print(Assoc$SNP)
-  outputfile<-rename_output(file1)
-  #message("\n\n",yellow$underline$bold(paste("Writing SNP list to output at:",outputfile)))
+  outputfile<-rename_output(AssocFile)
   write.table(SNPlist, file = outputfile, sep = "\t",col.names = TRUE,row.names=FALSE,quote = FALSE)
-  message(paste(outputfile))
+  directory=dirname(outputfile)                                          
+  SNP_list_filename <- file.path(directory, "SNP_list_directory");
+  writeLines(outputfile, SNP_list_filename)
+  message(paste("List of SNPS written at:",outputfile))
 }
 
-rename_output <- function(name=file1){
+
+
+rename_output <- function(name){
   executiondate=format(Sys.time(), "%Y%m%d")
   sufix=gsub(' ','',paste(".SNP.IDs.",executiondate,".tsv",collapser=""))
-  Outputfilename=gsub(".txt", sufix, name)
+  #Outputfilename=gsub(".txt", sufix, name)
   Outputfilename=gsub(".tsv", sufix, name)
-  Outputfilename=gsub(".assoc", sufix, name)
-	
+  #Outputfilename=gsub(".assoc", sufix, name)
   return(Outputfilename)
 }
 
