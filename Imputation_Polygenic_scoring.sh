@@ -50,7 +50,7 @@ folder="$1"
 assocfile="$2"
 a="$3"
 b="$4"
-s="5"
+s="$5"
 
 
 # Polygeic Risk score 
@@ -93,7 +93,7 @@ done
 
 
 
-
+#### data imputation
 
 conda activate c46-1.x
 cd $folder
@@ -124,6 +124,8 @@ cd $folder
 done
 conda deactivate 
 
+### End of imputation
+
 cd $folder 
 datetoday=$(date '+%Y%m%d')
 
@@ -133,38 +135,34 @@ echo "$wholeVCFfiles"
 ### This is the name of the whole big vcf file 
 wholeimputedfile=$(echo "VCF_samples_file_$datetoday.vcf")
 /media/datashare/custom-bins/bcftools/bcftools merge $wholeVCFfiles -o $wholeimputedfile
-bgzip -c $wholeimputedfile >$wholeimputedfile.gz # zipped version
+bgzip -c $wholeimputedfile >$wholeimputedfile.gz #zippedversion
 tabix -p vcf $wholeimputedfile.gz #indexed version 
 
 ### selection variants in vcf for several samples
 selectedvariantsfile=$(echo "VCF_samples_file_variants_selected_$datetoday.vcf")
 Rscript --vanilla $snp_selector $assocfile
 
-#directoryassoc=$(pwd $assocfile)
-#snplistfile=$(echo("$directoryassoc/SNP_list_directory"))
-#snplistfile=$(cat )
-
 ### Get the name of the SNP IDS of target trait
 directoryassoc=$(dirname $assocfile)
 listfile=$(echo "$directoryassoc/SNP_list_directory") # intermediate file 
 snplistfile=$(cat $listfile) ## actual file with snps ids 
 
-#listsnpsfile=$(cat $snplistfile)
 
 #### We use bcftools to perform the snp selection from the whole big VCF file 
-/media/datashare/custom-bins/bcftools/bcftools view -i "ID=$snplistfile" $wholeimputedfile -o $selectedvariantsfile 
+/media/datashare/custom-bins/bcftools/bcftools view -i "ID=@$snplistfile" $wholeimputedfile -o $selectedvariantsfile 
 
-#bgzip -c $analysisvcf >$analysisvcf.gz
-#tabix -p vcf $analysisvcf.gz
-#echo "$wholeVCFfiles"
-#selectedvariantsfile=$(echo "VCF_samples_file_variants_selected_$datetoday.vcf")
-#/media/datashare/custom-bins/bcftools/bcftools isec -c none -n=2 -w1 $wholeimputedfile.gz $analysisvcf.gz -o $selectedvariantsfile
+## bgzip -c $analysisvcf >$analysisvcf.gz
+## tabix -p vcf $analysisvcf.gz
+## echo "$wholeVCFfiles"
+## selectedvariantsfile=$(echo "VCF_samples_file_variants_selected_$datetoday.vcf")
+## /media/datashare/custom-bins/bcftools/bcftools isec -c none -n=2 -w1 $wholeimputedfile.gz $analysisvcf.gz -o $selectedvariantsfile
 
 ### Create a new prefix for the plink files 
 plinkfileprefix=$(echo "VCF_samples_file_variants_selected_$datetoday")
-plink --vcf $selectedvariantsfile --recode tab --out $plinkfileprefix #recode vcf to plink 
+plink --vcf $selectedvariantsfile --recode tab --double-id --out $plinkfileprefix #recode vcf to plink 
 plink --file $plinkfileprefix --make-bed --out $plinkfileprefix # recode plink to binary plink 
 
+### For Pheno file Construction
 #### Identified the ped file so we can build the pheno file for prcise
 pedfile=$(echo "$plinkfileprefix.ped")
 samplesIDS=$(cut -f2 $pedfile) ### select sample IDS
@@ -175,13 +173,15 @@ echo "$phenotinputs"
 
 ### Run script to build a random pheno assign to samples 
 Rscript --vanilla $randomphenotyper $phenotinputs 
+
+
 ### Clean Assoc file to assoc clean file free of repeated variants 
-echo -e "$assoc_cleaner $selectedvariantsfile $assocfile"
-Rscript --vanilla $assoc_cleaner $selectedvariantsfile $assocfile # run asssoc cleaner
-newassocfile=$(echo "$assocfile" | sed 's/assoc/clean.assoc/g'); # name of new assoc file 
+#echo -e "$assoc_cleaner $selectedvariantsfile $assocfile"
+#Rscript --vanilla $assoc_cleaner $selectedvariantsfile $assocfile # run asssoc cleaner
+#newassocfile=$(echo "$assocfile" | sed 's/assoc/clean.assoc/g'); # name of new assoc file 
 
 ### Run PRSice analysis 
-R --file=$prciser --args plink $plinkprs base $newassocfile target $plinkfileprefix slower $a sinc $w supper $b no.regression T covary F allow.no.sex T pheno.file $phenofile debug.mode T 
+R --file=$prciser --args plink $plinkprs base $assocfile target $plinkfileprefix slower $a sinc $s supper $b no.regression T covary F allow.no.sex T pheno.file $phenofile debug.mode T 
 
 ### End message (running time)
 echo "Running time: $SECONDS seconds";
