@@ -21,14 +21,14 @@ Help()
    # Display Help
    echo "Runs a PRSice polygenic score analysis based on target and base data using a P threshold (range)"
    echo
-   echo "Syntax: PRS_Analysis_From_PLINKData.sh [target genotypes] [base data] [lowest P] [highest P] [step in P units] [phenotype file]"
+   echo "Syntax: PRS_Analysis_From_PLINKData.sh [target genotypes] [base data] [lowest P] [highest P] [step in P units]"
    echo "options:"
    echo "[target genotypes]	Genotype data in plink binary format (PED,BIM,FAM). Use only the prefix."
    echo "[base data]   Base data / summary statistics in PRSice format."
    echo "[lowest P]    Lowest value of P value to compute PS"
    echo "[highest P]   Highest value of P value to compute PS"
    echo "[Step]        Step of the P thresholds"
-   echo "[phenotypes]  Phenotype file in plink format of cases and controls [0,1,2,-9]"
+   #echo "[phenotypes]  Phenotype file in plink format of cases and controls [0,1,2,-9]"
    echo ""
 }
 
@@ -61,7 +61,7 @@ phenotinputs=$(echo "$samplesIDS $phenofile") ### sample IDs and pheno filename 
 #echo "$phenotinputs" 
 
 ### Run script to build a random pheno assign to samples 
-R --vanilla $randomphenotyper $phenotinputs 
+Rscript --vanilla $randomphenotyper $phenotinputs 
 
 R --file=$prciser --args plink $plinkprs base $assocfile target $plinkprefix slower $plow sinc $step supper $phigh no.regression T covary F allow.no.sex T pheno.file $phenofile debug.mode T 
 
