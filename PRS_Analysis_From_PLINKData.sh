@@ -49,6 +49,7 @@ prciser=/media/datashare/data/PRSice_v1.25/PRSice_v1.25.R
 plinkprs=/media/datashare/data/PRSice_v1.25/plink_1.9_linux_160914
 # Pheno file 
 randomphenotyper=/home/centos/Wily/bash_production_scripts/Random_Phenotype_table.R
+normalizerPRS=/home/centos/Wily/PRScoring/Normalize_Recompute_Polygenic_Scores.r
 #assoc_cleaner=/home/centos/Wily/bash_production_scripts/Clean_Repeats_Keep_significant.R
 
 ### For Pheno file Construction
@@ -64,5 +65,10 @@ phenotinputs=$(echo "$samplesIDS $phenofile") ### sample IDs and pheno filename 
 Rscript --vanilla $randomphenotyper $phenotinputs 
 
 R --file=$prciser --args plink $plinkprs base $assocfile target $plinkprefix slower $plow sinc $step supper $phigh no.regression T covary F allow.no.sex T pheno.file $phenofile debug.mode T 
+
+resultspath=$(pwd); resultsfile=$(echo "$resultspath/PRSice_SCORES_AT_ALL_THRESHOLDS.txt");
+
+Rscript --vanilla $normalizerPRS $resultsfile
+
 
 
