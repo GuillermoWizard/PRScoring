@@ -59,6 +59,7 @@ plinkprs=/media/datashare/data/PRSice_v1.25/plink_1.9_linux_160914
 randomphenotyper=/home/centos/Wily/bash_production_scripts/Random_Phenotype_table.R
 assoc_cleaner=/home/centos/Wily/bash_production_scripts/Clean_Repeats_Keep_significant.R
 snp_selector=/home/centos/Wily/PRScoring/Select_target_variants.R
+normalizerPRS=/home/centos/Wily/PRScoring/Normalize_Recompute_Polygenic_Scores.r
 
 #instrument_path="/media/datashare/data/gwas_catalog/covid19/"
 
@@ -182,6 +183,11 @@ Rscript --vanilla $randomphenotyper $phenotinputs
 
 ### Run PRSice analysis 
 R --file=$prciser --args plink $plinkprs base $assocfile target $plinkfileprefix slower $a sinc $s supper $b no.regression T covary F allow.no.sex T pheno.file $phenofile debug.mode T 
+
+resultspath=$(pwd); resultsfile=$(echo "$resultspath/PRSice_SCORES_AT_ALL_THRESHOLDS.txt");
+
+Rscript --vanilla $normalizerPRS $resultsfile
+
 
 ### End message (running time)
 echo "Running time: $SECONDS seconds";
