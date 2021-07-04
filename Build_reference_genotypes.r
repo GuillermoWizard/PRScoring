@@ -16,24 +16,26 @@ if (length(args)==0) {
 } else if (length(args)==1) {
   stop("At least two arguments/files must be supplied.", call.=FALSE)
 } else if (length(args)==2) {
-    file1=args[1];
-    file2=args[2];
+  file1=args[1];
+  file2=args[2];
 }
 
 
 main <- function(AssocFile, vcfFile){
   Assocdata = as.data.frame(fread(AssocFile,header=T))
   vcf <- read.vcfR(vcfFile, verbose = FALSE )
-
+  
   ##### Metadata in header
-  metadata=(as.data.frame(vcf@meta))
+  #metadata=(as.data.frame(vcf@meta))
+  meta=vcf@meta
+  
   ##### VCF genetic information 
   vcffix=(as.data.frame(vcf@fix));
   colnamesvcf=colnames(vcffix);
   ##### Samples Genotype data
   vcfGeno=(as.data.frame(vcf@gt))
   colnamesgenotypes=colnames(vcfGeno)
-
+  
   #####
   vcfdata=cbind(vcffix,vcfGeno)
   n1=nrow(vcfdata)  
@@ -98,16 +100,16 @@ main <- function(AssocFile, vcfFile){
   vcf_simulated$PROTEGIDO2=matrix(mapply(gsub,"G",rep("1",n5),vcf_simulated$PROTEGIDO2),ncol = 1)
   ####
   validcols=c(colnamesvcf,colnamesgenotypes,c("AFECTADO1","AFECTADO2","NEUTRO","PROTEGIDO1","PROTEGIDO2"))
-  new_vcf = vcf_simulated %>% select(validcols)
+  new_vcf = vcf_simulated %>% select(all_of(validcols))
   colnames(new_vcf)[1] = paste0("#",validcols[1])
   #head(new_vcf)
   outputfile<-rename_output(file2)
-  write.table(metadata, file = outputfile, sep = "\t",col.names = TRUE,row.names=FALSE,quote = FALSE)
+  writeLines(meta, outputfile)
+  #write.table(metadata, file = outputfile, sep = "\t",col.names = TRUE,row.names=FALSE,quote = FALSE)
   write.table(new_vcf, file = outputfile, sep = "\t",col.names = TRUE,row.names=FALSE,quote = FALSE,append = TRUE)
   message("\n\n",yellow$underline$bold(paste("Writing output at:",outputfile)))
   
 }
-
 
 rename_output <- function(File){
   executiondate=format(Sys.time(), "%Y%m%d")
@@ -115,7 +117,6 @@ rename_output <- function(File){
   Outputfilename=gsub(".vcf",sufix, File)
   return(Outputfilename)
 }
-
 
 ## MAIN
 if (!interactive()){
@@ -132,8 +133,3 @@ if (!interactive()){
 } else {
   message("Sourcing ...")
 }
-
-
-
-
-
