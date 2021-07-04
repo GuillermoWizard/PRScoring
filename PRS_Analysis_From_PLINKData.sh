@@ -38,18 +38,30 @@ Help
 # Batch a partir de un folder con todos los reportes en txt
 plinkprefix="$1"
 assocfile="$2"
-phenofile="$3"
-plow="$4"
-phigh="$5"
-step="$6"
+#phenofile="$3"
+plow="$3"
+phigh="$4"
+step="$5"
 
 
 # Polygeic Risk score 
 prciser=/media/datashare/data/PRSice_v1.25/PRSice_v1.25.R
 plinkprs=/media/datashare/data/PRSice_v1.25/plink_1.9_linux_160914
-
-#randomphenotyper=/home/centos/Wily/bash_production_scripts/Random_Phenotype_table.R
+# Pheno file 
+randomphenotyper=/home/centos/Wily/bash_production_scripts/Random_Phenotype_table.R
 #assoc_cleaner=/home/centos/Wily/bash_production_scripts/Clean_Repeats_Keep_significant.R
+
+### For Pheno file Construction
+#### Identified the ped file so we can build the pheno file for prcise
+pedfile=$(echo "$plinkprefix.ped")
+samplesIDS=$(cut -f2 $pedfile) ### select sample IDS
+phenofile=$(echo "$plinkprefix.pheno") ### Pheno file name 
+phenotinputs=$(echo "$samplesIDS $phenofile") ### sample IDs and pheno filename will be used as arguments 
+#echo "$pedfile"
+#echo "$phenotinputs" 
+
+### Run script to build a random pheno assign to samples 
+R --vanilla $randomphenotyper $phenotinputs 
 
 R --file=$prciser --args plink $plinkprs base $assocfile target $plinkprefix slower $plow sinc $step supper $phigh no.regression T covary F allow.no.sex T pheno.file $phenofile debug.mode T 
 
