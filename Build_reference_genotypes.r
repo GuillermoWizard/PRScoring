@@ -98,7 +98,7 @@ main <- function(AssocFile, vcfFile){
   vcf_simulated$PROTEGIDO2=matrix(mapply(gsub,"G",rep("1",n5),vcf_simulated$PROTEGIDO2),ncol = 1)
   ####
   validcols=c(colnamesvcf,colnamesgenotypes,c("AFECTADO1","AFECTADO2","NEUTRO","PROTEGIDO1","PROTEGIDO2"))
-  new_vcf = vcf_simulated %>% select(all_of(validcols))
+  new_vcf = vcf_simulated %>% select(validcols)
   colnames(new_vcf)[1] = paste0("#",validcols[1])
   #head(new_vcf)
   outputfile<-rename_output(file2)
