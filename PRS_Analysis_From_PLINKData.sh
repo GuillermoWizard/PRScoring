@@ -28,7 +28,6 @@ Help()
    echo "[lowest P]    Lowest value of P value to compute PS"
    echo "[highest P]   Highest value of P value to compute PS"
    echo "[Step]        Step of the P thresholds"
-   #echo "[phenotypes]  Phenotype file in plink format of cases and controls [0,1,2,-9]"
    echo ""
 }
 
