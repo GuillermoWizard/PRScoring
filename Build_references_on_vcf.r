@@ -114,6 +114,8 @@ main <- function(AssocFile, vcfFile){
   ####
   validcols=c(colnamesvcf,colnamesgenotypes,c("AFECTADO1","AFECTADO2","NEUTRO","PROTEGIDO1","PROTEGIDO2"))
   new_vcf = vcf_simulated %>% select(validcols)
+  #### sort new vcf data 
+  new_vcf=new_vcf[order(new_vcf[,1], new_vcf[,2] ),];
   colnames(new_vcf)[1] = paste0("#",validcols[1])
   outputfile<-rename_output(file2)
   writeLines(meta, outputfile)
