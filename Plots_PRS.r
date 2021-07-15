@@ -34,7 +34,7 @@ main <- function(file){
   ni=nrow(scores_hist)
   mini=min(scores_hist$pT_0.000001)-10
   maxi=max(scores_hist$pT_0.000001)+10
-  histogram1=ggplot(data=scores_hist, aes(x=pT_0.000001)) + labs(y="Polygenic Score (pencentage)", x = "Thresholds of p-values") + geom_histogram(aes(y=..density..), position="identity", alpha=0.5, bins=ni) + theme(legend.position = "none") + ggtitle("Histogram of Normalized Polygenic Scores in a percentage scale") + geom_density(alpha=.2, fill="#FF6666") + xlim(mini,maxi)
+  histogram1=ggplot(data=scores_hist, aes(x=pT_0.000001)) + labs(y="Prevalence (density function)", x = "Polygenic Score (pencentage)") + geom_histogram(aes(y=..density..), position="identity", alpha=0.5, bins=ni) + theme(legend.position = "none") + ggtitle("Histogram of Normalized Polygenic Scores in a percentage scale") + geom_density(alpha=.2, fill="#FF6666") + xlim(mini,maxi)
 
   ########    
   outputfile<-rename_output(file)
