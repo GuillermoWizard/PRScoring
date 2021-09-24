@@ -34,10 +34,8 @@ Help()
 ################################################################################
 ################################################################################
 
-Help
 
-
-SECONDS=0;
+#SECONDS=0;
 a="$(echo $CONDA_EXE | sed 's/bin\/conda/\t/')"   # CONDA_EXE es una variable predefinida en la instalación de Conda
 CONDA_SH=$(echo "$a/etc/profile.d/conda.sh" | sed 's/\t//g')
 echo "sourcing ... $CONDA_SH"
@@ -46,27 +44,41 @@ source $CONDA_SH
 
 # Batch a partir de un folder con todos los reportes en txt
 folder="$1"
-#analysisvcf="$2"
 assocfile="$2"
 a="$3"
 b="$4"
 s="$5"
 
 
-# Polygeic Risk score 
-prciser=/media/datashare/data/PRSice_v1.25/PRSice_v1.25.R
-plinkprs=/media/datashare/data/PRSice_v1.25/plink_1.9_linux_160914
-randomphenotyper=/home/centos/Wily/bash_production_scripts/Random_Phenotype_table.R
-assoc_cleaner=/home/centos/Wily/bash_production_scripts/Clean_Repeats_Keep_significant.R
-snp_selector=/home/centos/Wily/PRScoring/Select_target_variants.R
-normalizerPRS=/home/centos/Wily/PRScoring/Normalize_Recompute_Polygenic_Scores.r
+if [ -z $5 ]
+then
+	Help
+  	echo "Please input all the arguments";
+elif [ -n $5 ]
+then
 
-#instrument_path="/media/datashare/data/gwas_catalog/covid19/"
+
+# Polygeic Risk score 
+prciser=/opt/bin/PRSice/bin/PRSice
+
+# Set to run on i0
+
+	randomphenotyper=/opt/repo/Will/bash_production_scripts/Random_Phenotype_table.R
+
+	assoc_cleaner=/opt/repo/Will/bash_production_scripts/Clean_Repeats_Keep_significant.R
+
+	snp_selector=/opt/repo/Will/PRScoring/Select_target_variants.R
+
+	normalizerPRS=/opt/repo/Will/PRScoring/Normalize_Recompute_Polygenic_Scores.r
+
+
+#### file conversion to vcf 
 
 runningfolder=$(pwd)
 
 for file in $(ls $folder/*_all_variants.txt); do
   #praefix="$(echo ${file/.txt})"
+
   praefix=$(echo $file | sed 's/\.txt//g')
   echo "Praefix:  $praefix" 
 
@@ -92,99 +104,148 @@ for file in $(ls $folder/*_all_variants.txt); do
 
 done
 
-
-
 #### data imputation
 
-conda activate c46-1.x
-cd $folder
-wholeVCFfiles=""
-for dir in $(ls -d */); do 
-cd $dir
-	for vcf in $(ls *_all_variants.vcf); do
-	vcfimputednames="";
-		 for chr in $(seq 1 22); do \
-		    praefix="$(echo ${vcf/.vcf})"
-		    imp.py -i $vcf -c $chr  -e beagle -o $praefix.$chr 
-    		    rm $praefix.${chr}.log
-		    vcfcompressname=$(echo "$praefix.$chr.vcf.gz");
-		    tabix -p vcf $vcfcompressname 
-		    vcfimputednames=$(echo "$vcfimputednames $vcfcompressname");		
-		    echo "$vcfimputednames"		
-		  done
-	outputimputed=$(echo "$praefix.complete.vcf");
-	echo "Building $outputimputed";
-	/media/datashare/custom-bins/bcftools/bcftools concat $vcfimputednames -o $outputimputed 
-	bgzip -c $outputimputed >$outputimputed.gz 
-	tabix -p vcf $outputimputed.gz
-	mv $outputimputed.gz $folder   
-	mv $outputimputed.gz.tbi $folder 
-	wholeVCFfiles=$(echo "$wholeVCFfiles $outputimputed.gz")
-	done
-cd $folder
-done
-conda deactivate 
+cd $folder;
 
-### End of imputation
+wholeVCFfiles="";
+
+for dir in $(ls -d */); do
+ 
+cd $dir
+
+	for vcf in $(ls *_all_variants.vcf); do
+
+	vcfimputednames="";
+
+		 for chr in $(seq 1 22); do 
+
+		    conda activate c46-1.x
+
+		    praefix="$(echo ${vcf/.vcf})"
+
+		    imp.py -i $vcf -c $chr  -e beagle -o $praefix.$chr
+ 
+    		    rm $praefix.${chr}.log
+
+		    vcfcompressname=$(echo "$praefix.$chr.vcf.gz");
+
+		    tabix -p vcf $vcfcompressname 
+
+		    vcfimputednames=$(echo "$vcfimputednames $vcfcompressname");
+		
+		    echo "$vcfimputednames"
+	
+		    conda deactivate ### End of imputation
+
+		  done
+
+	outputimputed=$(echo "$praefix.complete.vcf");
+
+	echo "Building $outputimputed";
+
+	bcftools concat $vcfimputednames -o $outputimputed 
+
+	bgzip -c $outputimputed >$outputimputed.gz
+ 
+	tabix -p vcf $outputimputed.gz
+
+	mv $outputimputed.gz $folder
+   
+	mv $outputimputed.gz.tbi $folder
+ 
+	wholeVCFfiles=$(echo "$wholeVCFfiles $outputimputed.gz")
+
+	done
+
+cd $folder
+
+done
+
 
 cd $folder 
+
 datetoday=$(date '+%Y%m%d')
 
 ### These are the names of the VCF files with imputation data 
+
 echo "$wholeVCFfiles"
 
 ### This is the name of the whole big vcf file 
+
 wholeimputedfile=$(echo "VCF_samples_file_$datetoday.vcf")
-/media/datashare/custom-bins/bcftools/bcftools merge $wholeVCFfiles -o $wholeimputedfile
+
+bcftools merge $wholeVCFfiles -o $wholeimputedfile
+
 bgzip -c $wholeimputedfile >$wholeimputedfile.gz #zippedversion
-tabix -p vcf $wholeimputedfile.gz #indexed version 
+
+tabix -p vcf $wholeimputedfile.gz #indexed version
+
+ 
 
 ### selection variants in vcf for several samples
+
 selectedvariantsfile=$(echo "VCF_samples_file_variants_selected_$datetoday.vcf")
+
 Rscript --vanilla $snp_selector $assocfile
 
+
+
 ### Get the name of the SNP IDS of target trait
+
 directoryassoc=$(dirname $assocfile)
+
 listfile=$(echo "$directoryassoc/SNP_list_directory") # intermediate file 
+
 snplistfile=$(cat $listfile) ## actual file with snps ids 
 
 
-#### We use bcftools to perform the snp selection from the whole big VCF file 
-/media/datashare/custom-bins/bcftools/bcftools view -i "ID=@$snplistfile" $wholeimputedfile -o $selectedvariantsfile 
+####  snp selection from the whole big VCF file
+ 
+bcftools view -i "ID=@$snplistfile" $wholeimputedfile -o $selectedvariantsfile 
 
-## bgzip -c $analysisvcf >$analysisvcf.gz
-## tabix -p vcf $analysisvcf.gz
-## echo "$wholeVCFfiles"
-## selectedvariantsfile=$(echo "VCF_samples_file_variants_selected_$datetoday.vcf")
-## /media/datashare/custom-bins/bcftools/bcftools isec -c none -n=2 -w1 $wholeimputedfile.gz $analysisvcf.gz -o $selectedvariantsfile
+
 
 ### Create a new prefix for the plink files 
+
 plinkfileprefix=$(echo "VCF_samples_file_variants_selected_$datetoday")
-plink --vcf $selectedvariantsfile --recode tab --double-id --out $plinkfileprefix #recode vcf to plink 
+
+plink --vcf $selectedvariantsfile --recode tab --double-id --out $plinkfileprefix #recode vcf to plink
+ 
 plink --file $plinkfileprefix --make-bed --out $plinkfileprefix # recode plink to binary plink 
 
+
+
 ### For Pheno file Construction
-#### Identified the ped file so we can build the pheno file for prcise
+
+#### build the pheno file for prcise
+
 pedfile=$(echo "$plinkfileprefix.ped")
+
 samplesIDS=$(cut -f2 $pedfile) ### select sample IDS
+
 phenofile=$(echo "$plinkfileprefix.pheno") ### Pheno file name 
-phenotinputs=$(echo "$samplesIDS $phenofile") ### sample IDs and pheno filename will be used as arguments 
+
+phenotinputs=$(echo "$samplesIDS $phenofile") ### sample IDs and pheno filename will be used as arguments
+
 echo "$pedfile"
+
 echo "$phenotinputs" 
+
+
 
 ### Run script to build a random pheno assign to samples 
 Rscript --vanilla $randomphenotyper $phenotinputs 
 
 
-### Clean Assoc file to assoc clean file free of repeated variants 
-#echo -e "$assoc_cleaner $selectedvariantsfile $assocfile"
-#Rscript --vanilla $assoc_cleaner $selectedvariantsfile $assocfile # run asssoc cleaner
-#newassocfile=$(echo "$assocfile" | sed 's/assoc/clean.assoc/g'); # name of new assoc file 
 
 ### Run PRSice analysis 
-R --file=$prciser --args plink $plinkprs base $assocfile target $plinkfileprefix slower $a sinc $s supper $b no.regression T covary F allow.no.sex T pheno.file $phenofile debug.mode T 
 
-resultspath=$(pwd); resultsfile=$(echo "$resultspath/PRSice_SCORES_AT_ALL_THRESHOLDS.txt");
+$prciser --base $assocfile --target $plinkfileprefix --lower $a --interval $s --upper $b --no-regress --pheno $phenofile --ignore-fid 
+
+resultspath=$(pwd); 
+
+resultsfile=$(echo "$resultspath/PRSice_SCORES_AT_ALL_THRESHOLDS.txt");
 
 Rscript --vanilla $normalizerPRS $resultsfile
 
@@ -193,5 +254,4 @@ Rscript --vanilla $normalizerPRS $resultsfile
 echo "Running time: $SECONDS seconds";
 
 
-
-
+fi
